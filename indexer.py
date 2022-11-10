@@ -1,16 +1,16 @@
 import json
+import os
 import re
 from pathlib import Path
 from bs4 import *
 from nltk.stem.snowball import SnowballStemmer
-
-
+from nltk.tokenize import RegexpTokenizer
 
 class Indexer:
     def __init__(self):
-        self.directory = "DEV"
+        self.directory = "ANALYST"
         # index: { {token: {doc_id: weight}} }
-        self.index = {}
+        self.index = dict()
         self.docid_document_map = {}
         self.file_list = []
         self.doc_id = 1
@@ -30,8 +30,8 @@ class Indexer:
             
             if '#' in url:
                 url = url[:url.index('#')]
-            if url not in visited_sites:
                 
+            if url not in visited_sites:
                 text_tokens = self.tokenize(text)     
                 title_tokens = self.tokenize(titles)
                 heading_tokens = self.tokenize(headings)
@@ -69,12 +69,14 @@ class Indexer:
         
         self.write_local_batch()
         self.index.clear()
-                       
-        with open('./index/docid_url_map.json', 'w') as json_file:
-            json.dump(self.docid_document_map, json_file)
-        self.docid_document_map.clear()
+        self.add_docid_document_app()              
         
-                
+    
+    def merge_index_batches(self, index_batch_dir):
+        batches = Path(index_batch_dir).rglob('*.txt')
+        pass
+        
+        
     def get_file_list(self):
         return Path(self.directory).rglob('*.json')
         
@@ -82,36 +84,37 @@ class Indexer:
     def process_file_weights(self, webpage_json):
         url = webpage_json["url"]
         content = webpage_json["content"]
-        soup = BeautifulSoup(content, "html.parser")
-        text = soup.get_text()
+        soup = BeautifulSoup(content, features="xml")
+        text = soup.text
         titles = ''
         headings = ''
         bolds = ''
         
         for title in soup.find_all('title'):
-            titles += title + ','
+            titles += title.text+ ','
         for heading in soup.find_all(['h1', 'h2', 'h3']):
-            headings += heading + ','
+            headings += heading.text + ','
         for bold in soup.find_all(['b', 'strong']):
-            bolds += bold + ','
+            bolds += bold.text + ','
         
         return url, text, titles, headings, bolds
-        
-        
     
-    def tokenize(text_str: str) -> list:
-        pattern = '^[a-zA-Z0-9]+$'  # include the single quotation mark
-        token_list = []
-        word_list = re.split(r'[`!@#$%^&*()_+\-=\[\]{};\':“”\"\\|,.<>\/?~\s+]', text_str.lower())
-        for word in word_list:
-            if re.match(pattern, word):
-                token_list.append(word)
+    
+    def tokenize(self, text_str: str) -> list:
+        # pattern = '^[a-zA-Z]+$'  # include the single quotation mark
+        # token_list = []
+        # word_list = re.split(r'[`!@#$%^&*()_+\-=\[\]{};\':“”\"\\|,.<>\/?~\s+]', text_str.lower())
+        # for word in word_list:
+        #     if re.match(pattern, word):
+        #         token_list.append(word)
+        tokenizer = RegexpTokenizer('[a-zA-Z0-9]+')
+        token_list = tokenizer.tokenize(text_str.lower())
         stemmer = SnowballStemmer("english")
         tokens = [stemmer.stem(token) for token in token_list]
         return tokens
     
     
-    def compute_freq(token_list: list) -> dict:
+    def compute_freq(self, token_list: list) -> dict:
         token_freq = dict()
         for token in token_list:
             if token in token_freq:
@@ -122,23 +125,29 @@ class Indexer:
     
     
     def write_local_batch(self):
-        with open(f'./indexes/index_batch_{self.batch_id}.txt', 'w') as batch_file:
-            for index_token in sorted(self.index.items(), key=lambda x: x[0]):
-                batch_file.write(index_token + '\n')   
+        if not os.path.exists('./indexes'):
+            os.mkdir('./indexes')
+        with open(f'./indexes/index_batch_{self.batch_id}.json', 'w') as batch_file:
+            sorted_index = sorted(self.index.items(), key=lambda x: x[0])
+            for index_token in sorted_index:
+                json.dump(index_token, batch_file)
+            #     batch_file.write(f'index_token')
+            #     batch_file.write('\n')  
             batch_file.close()            
-    
-    
-    def update_url_list(self, visited_sites):
-        for visited_site in visited_sites:
-            .remove(visited_site)
             
     
-    
-                   
+    def add_docid_document_app(self):
+        if not os.path.exists('./indexes'):
+            os.mkdir('./indexes')
+        with open('./indexes/docid_url_map.json', 'w') as json_file:
+            json.dump(self.docid_document_map, json_file)
+        self.docid_document_map.clear()
+        
+                         
 if __name__ == '__main__':
     indexer = Indexer()
     indexer.build_index()
-    indexer.merge_index_batches('./index')
+    #indexer.merge_index_batches('./index')
                 
     
     
