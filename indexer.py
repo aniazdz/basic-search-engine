@@ -74,6 +74,7 @@ class Indexer:
     
     def merge_index_batches(self, index_batch_dir):
         batches = Path(index_batch_dir).rglob('*.txt')
+        
         pass
         
         
@@ -127,12 +128,11 @@ class Indexer:
     def write_local_batch(self):
         if not os.path.exists('./indexes'):
             os.mkdir('./indexes')
-        with open(f'./indexes/index_batch_{self.batch_id}.json', 'w') as batch_file:
+        with open(f'./indexes/index_batch_{self.batch_id}.txt', 'w') as batch_file:
             sorted_index = sorted(self.index.items(), key=lambda x: x[0])
             for index_token in sorted_index:
-                json.dump(index_token, batch_file)
-            #     batch_file.write(f'index_token')
-            #     batch_file.write('\n')  
+                #json.dump(index_token, batch_file)
+                batch_file.write(str(index_token) + '\n')
             batch_file.close()            
             
     
