@@ -12,35 +12,27 @@ class Indexer:
         # index: { {token: {doc_id: weight}} }
         self.index = {}
         self.docid_document_map = {}
-        self.path_list = []
+        self.file_list = []
         self.doc_id = 1
-        self.file_threshold = 2000
+        self.file_number_threshold = 2000
+        self.batch_id = 1
     
-    
-    def get_file_list(self):
-        path_set = set()
-        path_list = Path(self.directory).rglob('*.json')
-        for path in path_list:
-            path = str(path)
-            if "#" in path:
-                path = path[:path.index("#")]
-            path_set.add(path)
-        self.path_list = list(path_set)
-        
         
     def build_index(self):
-        if not self.path_list:
-            self.get_file_list()
+        file_list = self.get_file_list()
             
-        visited_site = set()
-        for file in self.path_list:
+        visited_sites = set()
+        for file in file_list:
             with open(file, 'r') as json_file:
                 webpage_json = json.load(json_file)
+            
             url, text, titles, headings, bolds = self.process_file_weights(webpage_json)
             
-            if url not in visited_site:
+            if '#' in url:
+                url = url[:url.index('#')]
+            if url not in visited_sites:
                 
-                text_tokens = self.tokenize(text)
+                text_tokens = self.tokenize(text)     
                 title_tokens = self.tokenize(titles)
                 heading_tokens = self.tokenize(headings)
                 bold_tokens = self.tokenize(bolds)
@@ -68,28 +60,42 @@ class Indexer:
                 
                 self.docid_document_map[self.doc_id] = url
                 self.doc_id += 1
-                visited_site.add(url)
-                               
-                        
+                visited_sites.add(url)
             
-            
+            if (self.doc_id % self.file_number_threshold == 0):
+                self.write_local_batch()
+                self.index.clear()
+                self.batch_id += 1              
+        
+        self.write_local_batch()
+        self.index.clear()
+                       
+        with open('./index/docid_url_map.json', 'w') as json_file:
+            json.dump(self.docid_document_map, json_file)
+        self.docid_document_map.clear()
+        
+                
+    def get_file_list(self):
+        return Path(self.directory).rglob('*.json')
+        
     
     def process_file_weights(self, webpage_json):
+        url = webpage_json["url"]
         content = webpage_json["content"]
         soup = BeautifulSoup(content, "html.parser")
         text = soup.get_text()
-        titles = []
-        headings = []
-        bolds = []
+        titles = ''
+        headings = ''
+        bolds = ''
         
         for title in soup.find_all('title'):
-            titles.append(title)
+            titles += title + ','
         for heading in soup.find_all(['h1', 'h2', 'h3']):
-            headings.append(heading)
+            headings += heading + ','
         for bold in soup.find_all(['b', 'strong']):
-            bolds.append(bold)
+            bolds += bold + ','
         
-        return webpage_json["url"], text, titles, headings, bolds
+        return url, text, titles, headings, bolds
         
         
     
@@ -113,10 +119,26 @@ class Indexer:
             else:
                 token_freq[token] = 1
         return token_freq
-        
-        
+    
+    
+    def write_local_batch(self):
+        with open(f'./indexes/index_batch_{self.batch_id}.txt', 'w') as batch_file:
+            for index_token in sorted(self.index.items(), key=lambda x: x[0]):
+                batch_file.write(index_token + '\n')   
+            batch_file.close()            
+    
+    
+    def update_url_list(self, visited_sites):
+        for visited_site in visited_sites:
+            .remove(visited_site)
+            
+    
+    
+                   
 if __name__ == '__main__':
-    index = Indexer()
+    indexer = Indexer()
+    indexer.build_index()
+    indexer.merge_index_batches('./index')
                 
     
     
