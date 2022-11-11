@@ -185,9 +185,7 @@ def generate_report():
         report_file.write(f"The total size of indexes: {round(total_size_of_indexes, 3)}MB")
         report_file.close()
         
-            
-        
-                        
+                 
 if __name__ == '__main__':
     indexer = Indexer()
     indexer.build_index()
