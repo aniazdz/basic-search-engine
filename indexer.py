@@ -3,13 +3,17 @@ import os
 import re
 from pathlib import Path
 from bs4 import *
+import nltk
 from nltk.stem.snowball import SnowballStemmer
-from nltk.tokenize import RegexpTokenizer
+from nltk.tokenize import RegexpTokenizer, word_tokenize
+import ssl
+
 
 
 class Indexer:
     def __init__(self):
         self.directory = "ANALYST"
+        self.download_nltk_dependency()
         # index: { {token: {doc_id: weight}} }
         self.index = dict()
         self.docid_document_map = {}
@@ -17,8 +21,22 @@ class Indexer:
         self.doc_id = 1
         self.file_number_threshold = 2000
         self.batch_id = 1
+            
     
+    def download_nltk_dependency(self):
+        try:
+            _create_unverified_https_context = ssl._create_unverified_context
+        except AttributeError:
+            pass
+        else:
+            ssl._create_default_https_context = _create_unverified_https_context
+
+        if not os.path.exists('./nltk_data'):
+            os.mkdir('./nltk_data')
+        nltk.data.path.append('./nltk_data/')
+        nltk.download('punkt', download_dir='./nltk_data/')
         
+                    
     def build_index(self):
         file_list = self.get_file_list()
             
@@ -108,10 +126,16 @@ class Indexer:
         # for word in word_list:
         #     if re.match(pattern, word):
         #         token_list.append(word)
-        tokenizer = RegexpTokenizer('[a-zA-Z]+')
-        token_list = tokenizer.tokenize(text_str.lower())
+        #tokenizer = RegexpTokenizer('[a-zA-Z]+')
+        #token_list = tokenizer.tokenize(text_str.lower())
+        pattern = '^[a-z0-9]+$'
+        token_list = word_tokenize(text_str.lower())
+        token_list_beautify = []
+        for token in token_list:
+            if re.match(pattern, token):
+                token_list_beautify.append(token)
         stemmer = SnowballStemmer("english")
-        tokens = [stemmer.stem(token) for token in token_list]
+        tokens = [stemmer.stem(token) for token in token_list_beautify]
         return tokens
     
     
@@ -158,7 +182,7 @@ def generate_report():
             index_count += sum(1 for line in index_file if line.strip())
             total_size_of_indexes += os.path.getsize(batch) * 10**-6
         report_file.write(f"The number of unique tokens: {index_count}\n\n")
-        report_file.write(f"The total size of indexes: {total_size_of_indexes}MB")
+        report_file.write(f"The total size of indexes: {round(total_size_of_indexes, 3)}MB")
         report_file.close()
         
             
