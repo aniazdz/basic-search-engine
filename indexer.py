@@ -6,6 +6,7 @@ from bs4 import *
 from nltk.stem.snowball import SnowballStemmer
 from nltk.tokenize import RegexpTokenizer
 
+
 class Indexer:
     def __init__(self):
         self.directory = "ANALYST"
@@ -74,7 +75,6 @@ class Indexer:
     
     def merge_index_batches(self, index_batch_dir):
         batches = Path(index_batch_dir).rglob('*.txt')
-        
         pass
         
         
@@ -99,16 +99,16 @@ class Indexer:
             bolds += bold.text + ','
         
         return url, text, titles, headings, bolds
-    
+
     
     def tokenize(self, text_str: str) -> list:
-        # pattern = '^[a-zA-Z]+$'  # include the single quotation mark
+        # pattern = '^[a-zA-Z]+$'
         # token_list = []
         # word_list = re.split(r'[`!@#$%^&*()_+\-=\[\]{};\':“”\"\\|,.<>\/?~\s+]', text_str.lower())
         # for word in word_list:
         #     if re.match(pattern, word):
         #         token_list.append(word)
-        tokenizer = RegexpTokenizer('[a-zA-Z0-9]+')
+        tokenizer = RegexpTokenizer('[a-zA-Z]+')
         token_list = tokenizer.tokenize(text_str.lower())
         stemmer = SnowballStemmer("english")
         tokens = [stemmer.stem(token) for token in token_list]
@@ -131,7 +131,6 @@ class Indexer:
         with open(f'./indexes/index_batch_{self.batch_id}.txt', 'w') as batch_file:
             sorted_index = sorted(self.index.items(), key=lambda x: x[0])
             for index_token in sorted_index:
-                #json.dump(index_token, batch_file)
                 batch_file.write(str(index_token) + '\n')
             batch_file.close()            
             
@@ -143,12 +142,37 @@ class Indexer:
             json.dump(self.docid_document_map, json_file)
         self.docid_document_map.clear()
         
-                         
+
+
+def generate_report():
+    with open('report_MS1.txt', 'w') as report_file:
+        with open('./indexes/docid_url_map.json', 'r') as docid_json:
+            docid_map = json.load(docid_json)
+        report_file.write(f"The number of indexed documents: {len(docid_map)}\n\n")
+        
+        index_batches = Path('./indexes').rglob('*.txt')
+        index_count = 0
+        total_size_of_indexes = 0
+        for batch in index_batches:
+            index_file = open(batch, 'r')
+            index_count += sum(1 for line in index_file if line.strip())
+            total_size_of_indexes += os.path.getsize(batch) * 10**-6
+        report_file.write(f"The number of unique tokens: {index_count}\n\n")
+        report_file.write(f"The total size of indexes: {total_size_of_indexes}MB")
+        report_file.close()
+        
+            
+        
+                        
 if __name__ == '__main__':
     indexer = Indexer()
     indexer.build_index()
     #indexer.merge_index_batches('./index')
-                
+    generate_report()
+
+
+
+            
     
     
     
