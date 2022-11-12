@@ -190,9 +190,12 @@ def generate_report():
             
         
 if __name__ == '__main__':
+    #creates class object 
     indexer = Indexer()
+    #builds index based on text
     indexer.build_index()
     #indexer.merge_index_batches('./index')
+    #creates report
     generate_report()
 
 
