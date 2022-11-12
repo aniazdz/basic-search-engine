@@ -138,7 +138,7 @@ class Indexer:
         tokens = [stemmer.stem(token) for token in token_list_beautify]
         return tokens
     
-    
+    #adding up the frequencies of our tokens
     def compute_freq(self, token_list: list) -> dict:
         token_freq = dict()
         for token in token_list:
@@ -159,6 +159,7 @@ class Indexer:
             batch_file.close()            
             
     
+    
     def add_docid_document_app(self):
         if not os.path.exists('./indexes'):
             os.mkdir('./indexes')
@@ -167,7 +168,7 @@ class Indexer:
         self.docid_document_map.clear()
         
 
-
+#writing into the report with num of indexed docs, unique tockens, size of indexes.
 def generate_report():
     with open('report_MS1.txt', 'w') as report_file:
         with open('./indexes/docid_url_map.json', 'r') as docid_json:
@@ -185,7 +186,8 @@ def generate_report():
         report_file.write(f"The total size of indexes: {round(total_size_of_indexes, 3)}MB")
         report_file.close()
         
-                 
+            
+        
 if __name__ == '__main__':
     indexer = Indexer()
     indexer.build_index()
