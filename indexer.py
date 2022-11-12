@@ -56,7 +56,7 @@ class Indexer:
                 title_tokens = self.tokenize(titles)
                 heading_tokens = self.tokenize(headings)
                 bold_tokens = self.tokenize(bolds)
-                
+                #establishes weights
                 # weights:
                 # title token -> 5
                 # heading token -> 3
@@ -119,7 +119,7 @@ class Indexer:
         
         return url, text, titles, headings, bolds
 
-    
+    #filters text for langauge processing
     def tokenize(self, text_str: str) -> list:
         # pattern = '^[a-zA-Z]+$'
         # token_list = []
