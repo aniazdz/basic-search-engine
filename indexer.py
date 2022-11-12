@@ -9,7 +9,7 @@ from nltk.tokenize import RegexpTokenizer, word_tokenize
 import ssl
 
 
-
+#class Indexer 
 class Indexer:
     def __init__(self):
         self.directory = "ANALYST"
@@ -22,7 +22,7 @@ class Indexer:
         self.file_number_threshold = 2000
         self.batch_id = 1
             
-    
+    #nltk is a libary that works with human language data used for classifying and tokenizing data
     def download_nltk_dependency(self):
         try:
             _create_unverified_https_context = ssl._create_unverified_context
@@ -44,12 +44,13 @@ class Indexer:
         for file in file_list:
             with open(file, 'r') as json_file:
                 webpage_json = json.load(json_file)
-            
+            #creates weights
             url, text, titles, headings, bolds = self.process_file_weights(webpage_json)
             
             if '#' in url:
                 url = url[:url.index('#')]
-                
+            #creates specific tokens based on type of text 
+            #text types such as titles and headings have a greater weight than 
             if url not in visited_sites:
                 text_tokens = self.tokenize(text)     
                 title_tokens = self.tokenize(titles)
