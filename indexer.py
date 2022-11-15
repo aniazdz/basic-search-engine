@@ -23,6 +23,11 @@ class Indexer:
         self.batch_id = 1
             
     
+    def load_json(self, file_path):
+        with open(file_path, 'r') as f:
+            return json.load(f)
+    
+    
     def download_nltk_dependency(self):
         try:
             _create_unverified_https_context = ssl._create_unverified_context

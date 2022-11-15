@@ -7,38 +7,54 @@ import re
 
 class Query:
     def __init__(self, indexer):
-        self.docid_document_dict = json.load(open('./indexes/docid_url_map.json', 'r'))
+        self.docid_document_dict = indexer.load_json('./indexes/docid_url_map.json')
         self.index = open('./indexes/index_batch_1.txt')
-        self.token_posting_locations = json.load(open('./indexes/token_posting_locations.json', 'r'))
+        self.token_posting_locations = indexer.load_json('./indexes/token_posting_locations.json')
+        self.indexer = indexer
         self.query_tokens = []
+        self.result_urls = []
         
         
     def get_query_tokens(self):
         query = input('\nSearch Bar: ')
-        self.query_tokens = Indexer.tokenize(query)
+        self.query_tokens = self.indexer.tokenize(query)
         
         
     def ranking_retrieval(self):
         if self.query_tokens:
-            tf_query = Indexer.compute_freq(self.query_tokens)
-            query_tokens_scores = dict()
-            docid_containing_query_tokens = dict()
+            token_posting_dict = dict() # {token: {doc_id: freq}}
+            docid_score_dict = dict()
             
-            for token, freq in self.query_tokens.items():
-                token_posting = self.get_token_posting(token)
-                
-                for docid, freq in token_posting.items():
-                    if docid not in docid_containing_query_tokens:
-                        docid_containing_query_tokens[docid] = dict()
-                    docid_containing_query_tokens[docid][token] = freq
-                    
-                tf = 1 + math.log(freq)
-                idf = math.log(len(self.docid_document_dict) / len(token_posting))
-                query_tokens_scores[token] = tf * idf
-                
-                
+            for token in self.query_tokens:
+                if token not in token_posting_dict:
+                    posting = self.get_token_posting(token) #{doc_id: freq}
+                    token_posting_dict[token] = posting
+            token_posting_dict = dict(sorted(token_posting_dict.items(), key=lambda x: len(x[1])))
             
+            for token, posting in token_posting_dict.items():
+                idf = math.log(len(self.docid_document_dict) / len(posting))
+                for docid, freq in posting.items():
+                    tf = 1 + math.log(freq)
+                    if docid not in docid_score_dict:
+                        docid_score_dict[docid] = 0
+                    docid_score_dict[docid] += tf * idf
+            
+            docid_score_dict = dict(sorted(docid_score_dict.items(), key=lambda x: x[1], reverse=True))
+            count_of_ranked_docs = 5
+            doc_ids = docid_score_dict.keys()
+            for i in range(count_of_ranked_docs):
+                try:
+                    result_url = self.docid_document_dict[doc_ids[i]]
+                except KeyError:
+                    print(f"Less than {count_of_ranked_docs} results found.")
+                self.result_urls.append(result_url)
+                   
     
+    def result(self):
+        for i in range(len(self.result_urls)):
+            print(f"\n{i}. {self.result_urls[i]}")
+            
+            
     def get_token_posting(self, token):
         pointer = self.token_posting_locations[token]
         self.index.seek(pointer)
@@ -55,5 +71,12 @@ class Query:
     
         
 if __name__ == '__main__':
-    query_ranking = Query()
+    query = Query(Indexer())
+    query.get_query_tokens()
+    query.ranking_retrieval()
+    query.result()
+    
+    """
+    check this url if you cannot input your search string in VSCode: https://www.youtube.com/watch?v=mqp98TSVJUE
+    """
     
