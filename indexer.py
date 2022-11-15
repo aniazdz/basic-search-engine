@@ -9,7 +9,7 @@ from nltk.tokenize import RegexpTokenizer, word_tokenize
 import ssl
 
 
-#class Indexer 
+
 class Indexer:
     def __init__(self):
         self.directory = "ANALYST"
@@ -22,7 +22,7 @@ class Indexer:
         self.file_number_threshold = 2000
         self.batch_id = 1
             
-    #nltk is a libary that works with human language data used for classifying and tokenizing data
+    
     def download_nltk_dependency(self):
         try:
             _create_unverified_https_context = ssl._create_unverified_context
@@ -44,19 +44,18 @@ class Indexer:
         for file in file_list:
             with open(file, 'r') as json_file:
                 webpage_json = json.load(json_file)
-            #creates weights
+            
             url, text, titles, headings, bolds = self.process_file_weights(webpage_json)
             
             if '#' in url:
                 url = url[:url.index('#')]
-            #creates specific tokens based on type of text 
-            #text types such as titles and headings have a greater weight than 
+                
             if url not in visited_sites:
                 text_tokens = self.tokenize(text)     
                 title_tokens = self.tokenize(titles)
                 heading_tokens = self.tokenize(headings)
                 bold_tokens = self.tokenize(bolds)
-                #establishes weights
+                
                 # weights:
                 # title token -> 5
                 # heading token -> 3
@@ -119,7 +118,7 @@ class Indexer:
         
         return url, text, titles, headings, bolds
 
-    #filters text for langauge processing
+    
     def tokenize(self, text_str: str) -> list:
         # pattern = '^[a-zA-Z]+$'
         # token_list = []
@@ -139,7 +138,7 @@ class Indexer:
         tokens = [stemmer.stem(token) for token in token_list_beautify]
         return tokens
     
-    #adding up the frequencies of our tokens
+    
     def compute_freq(self, token_list: list) -> dict:
         token_freq = dict()
         for token in token_list:
@@ -160,7 +159,6 @@ class Indexer:
             batch_file.close()            
             
     
-    
     def add_docid_document_app(self):
         if not os.path.exists('./indexes'):
             os.mkdir('./indexes')
@@ -169,7 +167,26 @@ class Indexer:
         self.docid_document_map.clear()
         
 
-#writing into the report with num of indexed docs, unique tockens, size of indexes.
+    def get_token_posting_locations(self):
+        index_file = open('./indexes/index_batch_1.txt', 'r')
+        with open('./indexes/token_posting_locations.json', 'w') as token_posting_location_file:
+            token_posting_location_dict = dict()
+            
+            while True:
+                pointer = index_file.tell()
+                line = index_file.readline().strip('\n')
+                if line == '':
+                    break
+                tup = eval(line) # tuple of (token, postings)
+                token_posting_location_dict[tup[0]] = pointer
+            
+            json.dump(token_posting_location_dict, token_posting_location_file)
+        
+        index_file.close()
+        
+                
+        
+
 def generate_report():
     with open('report_MS1.txt', 'w') as report_file:
         with open('./indexes/docid_url_map.json', 'r') as docid_json:
@@ -189,14 +206,13 @@ def generate_report():
         
             
         
+                        
 if __name__ == '__main__':
-    #creates class object 
     indexer = Indexer()
-    #builds index based on text
     indexer.build_index()
+    indexer.get_token_posting_locations()
     #indexer.merge_index_batches('./index')
-    #creates report
-    generate_report()
+    #generate_report()
 
 
 
