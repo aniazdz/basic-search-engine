@@ -12,7 +12,7 @@ class Query:
         self.token_posting_locations = indexer.load_json('./indexes/token_posting_locations.json')
         self.indexer = indexer
         self.query_tokens = []
-        self.result_urls = []
+        self.result_urls = list()
         
         
     def get_query_tokens(self):
@@ -21,38 +21,38 @@ class Query:
         
         
     def ranking_retrieval(self):
-        if self.query_tokens:
-            token_posting_dict = dict() # {token: {doc_id: freq}}
-            docid_score_dict = dict()
-            
-            for token in self.query_tokens:
-                if token not in token_posting_dict:
-                    posting = self.get_token_posting(token) #{doc_id: freq}
-                    token_posting_dict[token] = posting
-            token_posting_dict = dict(sorted(token_posting_dict.items(), key=lambda x: len(x[1])))
-            
-            for token, posting in token_posting_dict.items():
-                idf = math.log(len(self.docid_document_dict) / len(posting))
-                for docid, freq in posting.items():
-                    tf = 1 + math.log(freq)
-                    if docid not in docid_score_dict:
-                        docid_score_dict[docid] = 0
-                    docid_score_dict[docid] += tf * idf
-            
-            docid_score_dict = dict(sorted(docid_score_dict.items(), key=lambda x: x[1], reverse=True))
-            count_of_ranked_docs = 5
-            doc_ids = docid_score_dict.keys()
-            for i in range(count_of_ranked_docs):
-                try:
-                    result_url = self.docid_document_dict[doc_ids[i]]
-                except KeyError:
-                    print(f"Less than {count_of_ranked_docs} results found.")
-                self.result_urls.append(result_url)
-                   
+        while not self.query_tokens:
+            print("\nEmpty String is unacceptable!")
+            self.get_query_tokens()
+        
+        token_posting_dict = dict() # {token: {doc_id: freq}}
+        docid_score_dict = dict()
+        
+        for token in self.query_tokens:
+            if token not in token_posting_dict:
+                posting = self.get_token_posting(token) #{doc_id: freq}
+                token_posting_dict[token] = posting
+        token_posting_dict = dict(sorted(token_posting_dict.items(), key=lambda x: len(x[1])))
+        
+        for token, posting in token_posting_dict.items():
+            idf = math.log(len(self.docid_document_dict) / len(posting))
+            for docid, freq in posting.items():
+                tf = 1 + math.log(freq)
+                if docid not in docid_score_dict:
+                    docid_score_dict[docid] = 0
+                docid_score_dict[docid] += tf * idf
+        
+        docid_score_dict = dict(sorted(docid_score_dict.items(), key=lambda x: x[1], reverse=True))
+        count_of_ranked_docs = 5
+        doc_ids = list(docid_score_dict.keys())
+        for i in range(count_of_ranked_docs):
+            result_url = self.docid_document_dict[str(doc_ids[i])]
+            self.result_urls.append(result_url)
+                         
     
     def result(self):
         for i in range(len(self.result_urls)):
-            print(f"\n{i}. {self.result_urls[i]}")
+            print(f"\n{i + 1}. {self.result_urls[i]}")
             
             
     def get_token_posting(self, token):
