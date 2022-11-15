@@ -1,1 +1,0 @@
-{"url": "https://www.ics.uci.edu/~majumder/VC/211HW3/vlfeat/.gitattributes", "content": "*.manifest -crlf -diff -merge\n*.vcproj binary\n*.sln binary\n", "encoding": "ascii"}
