@@ -25,29 +25,57 @@ class Query:
             print("\nEmpty String is unacceptable!")
             self.get_query_tokens()
         
-        token_posting_dict = dict() # {token: {doc_id: freq}}
-        docid_score_dict = dict()
+        query_freq = self.indexer.compute_freq(self.query_tokens) # {token: freq}
+        docid_token_score_dict = dict() # {docid: {token: score}}
+        query_score_dict = dict() # {query_token: score}
         
-        for token in self.query_tokens:
-            if token not in token_posting_dict:
-                posting = self.get_token_posting(token) #{doc_id: freq}
-                token_posting_dict[token] = posting
-        token_posting_dict = dict(sorted(token_posting_dict.items(), key=lambda x: len(x[1])))
         
-        for token, posting in token_posting_dict.items():
-            idf = math.log(len(self.docid_document_dict) / len(posting))
+        query_normalizer = 0
+        for token, freq_query in query_freq.items():
+            posting = self.get_token_posting(token)
+            query_score_dict[token] = (1 + math.log10(freq_query)) * math.log10(len(self.docid_document_dict) / len(posting))
+            
             for docid, freq in posting.items():
-                tf = 1 + math.log(freq)
-                if docid not in docid_score_dict:
-                    docid_score_dict[docid] = 0
-                docid_score_dict[docid] += tf * idf
+                if docid not in docid_token_score_dict:
+                    docid_token_score_dict[docid] = dict()
+                docid_token_score_dict[docid][token] = (1 + math.log10(freq)) * math.log10(len(self.docid_document_dict) / len(posting))
+            
+            query_normalizer += query_score_dict[token] * query_score_dict[token]
+        query_normalizer = math.sqrt(query_normalizer)
+        for token in query_score_dict.keys():
+            query_score_dict[token] /= query_normalizer
         
-        docid_score_dict = dict(sorted(docid_score_dict.items(), key=lambda x: x[1], reverse=True))
+        
+        for docid, token_score_map in docid_token_score_dict.items():
+            doc_normalizer = 0
+            for score in token_score_map.values():
+                doc_normalizer += score * score
+            doc_normalizer = math.sqrt(doc_normalizer)
+            for score in token_score_map.values():
+                score /= doc_normalizer
+        
+        
+        docid_cosine_similarity_dict = dict()
+        for docid, token_score_map in docid_token_score_dict.items():
+            similarity = 0
+            for token, score in token_score_map.items():
+                if token not in query_score_dict:
+                    continue
+                similarity += query_score_dict[token] * score
+            docid_cosine_similarity_dict[docid] = similarity
+        
+        
+        docid_cosine_similarity_dict = dict(sorted(docid_cosine_similarity_dict.items(), key=lambda x: x[1], reverse=True))
         count_of_ranked_docs = 5
-        doc_ids = list(docid_score_dict.keys())
-        for i in range(count_of_ranked_docs):
-            result_url = self.docid_document_dict[str(doc_ids[i])]
-            self.result_urls.append(result_url)
+        doc_ids = list(docid_cosine_similarity_dict.keys())
+        if len(doc_ids) < count_of_ranked_docs:
+            for i in range(len(doc_ids)):
+                result_url = self.docid_document_dict[str(doc_ids[i])]
+                self.result_urls.append(result_url)
+        else:
+            for i in range(count_of_ranked_docs):
+                result_url = self.docid_document_dict[str(doc_ids[i])]
+                self.result_urls.append(result_url)
                          
     
     def result(self):
