@@ -15,8 +15,8 @@ class Query:
         self.result_urls = list()
         
         
-    def get_query_tokens(self):
-        query = input('\nSearch Bar: ')
+    def get_query_tokens(self, query):
+        # query = input('\nSearch Bar: ')
         self.query_tokens = self.indexer.tokenize(query)
         
         
@@ -79,8 +79,10 @@ class Query:
                          
     
     def result(self):
+        res = []
         for i in range(len(self.result_urls)):
-            print(f"\n{i + 1}. {self.result_urls[i]}")
+            res.append( (i + 1, self.result_urls[i]) )
+        return res
             
             
     def get_token_posting(self, token):
@@ -100,9 +102,10 @@ class Query:
         
 if __name__ == '__main__':
     query = Query(Indexer())
-    query.get_query_tokens()
+    q = input('\nSearch Bar: ')
+    query.get_query_tokens(q)
     query.ranking_retrieval()
-    query.result()
+    print(query.result())
     
     """
     check this url if you cannot input your search string in VSCode: https://www.youtube.com/watch?v=mqp98TSVJUE
