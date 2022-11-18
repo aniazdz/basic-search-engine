@@ -28,7 +28,7 @@ def ind():
             return 'There was a problem processing your query'
         #\n Your query may have been empty or not processed correctly. \n\tPlease reload the page.
     else:
-        print(results, 'ahhhhh')
+        # print(results, 'ahhhhh')
         return render_template('index.html', results=results, search_content=search_content)
     
 if __name__=='__main__':
