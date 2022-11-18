@@ -9,9 +9,11 @@ app = Flask('__name__')
 
 @app.route('/', methods=['POST', 'GET'])
 
-def ind():
+def index():
     query = query_rank_retrieval.Query(indexer.Indexer())
-    global results, search_content
+    # global results, search_content
+    # results = []
+    # search_content = ''
     if request.method == 'POST':
         search_content = request.form['content']
         # print(search_content)
@@ -20,16 +22,18 @@ def ind():
                 pass
             query.get_query_tokens(search_content)
             query.ranking_retrieval()
-            results = query.result()
-            # for result in results:
-            #     print(result)
-            return redirect('/')
         except:
-            return 'There was a problem processing your query'
+
+            return redirect('/')
+            # return 'There was a problem processing your query'
         #\n Your query may have been empty or not processed correctly. \n\tPlease reload the page.
+        else:
+            # print(results)
+            results = query.result()
+            return render_template('index.html', results=results, search_content=search_content)
     else:
-        print(results, 'ahhhhh')
-        return render_template('index.html', results=results, search_content=search_content)
+        # print(results, 'ahhhhh')
+        return render_template('index.html') #, results=results, search_content=search_content)
     
 if __name__=='__main__':
     app.run(debug=True)
