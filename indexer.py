@@ -12,14 +12,14 @@ import ssl
 
 class Indexer:
     def __init__(self):
-        self.directory = "ANALYST"
+        self.directory = "DEV"
         self.download_nltk_dependency()
         # index: { {token: {doc_id: weight}} }
         self.index = dict()
         self.docid_document_map = {}
         self.file_list = []
         self.doc_id = 1
-        self.file_number_threshold = 2000
+        self.file_number_threshold = 10000
         self.batch_id = 1
             
     
@@ -96,10 +96,74 @@ class Indexer:
         self.add_docid_document_app()              
         
     
-    def merge_index_batches(self, index_batch_dir):
+    def binary_merge_index_batches(self, index_batch_dir):
         batches = Path(index_batch_dir).rglob('*.txt')
-        pass
+        cur_temp = 0
+        try:
+            open('./indexes/temp0.txt', 'x')
+            open('./indexes/temp1.txt', 'x')
+        except FileExistsError:
+            self.clear_merge_temp_files()
         
+        for cur_batch in batches:
+            cur_batch_file = open(cur_batch, 'r')
+            if cur_temp == 0:
+                input_temp = open('./indexes/temp0.txt', 'r')
+                output_temp = open('./indexes/temp1.txt', 'w')
+            elif cur_temp == 1:
+                input_temp = open('./indexes/temp1.txt', 'r')
+                output_temp = open('./indexes/temp0.txt', 'w')
+            
+            line1 = cur_batch_file.readline().strip('\n')
+            line2 = input_temp.readline().strip('\n')
+            while True:
+                if line1 == '':
+                    while True:
+                        if line2 == '':
+                            break
+                        output_temp.write(line2 + '\n')
+                        line2 = input_temp.readline().strip('\n')
+                    break
+                
+                if line2 == '':
+                    while True:
+                        if line1 == '':
+                            break
+                        output_temp.write(line1 + '\n')
+                        line1 = cur_batch_file.readline().strip('\n')
+                    break
+                
+                # if both files are not empty, merge
+                word1 = eval(line1)[0]
+                word2 = eval(line2)[0]
+                
+                while word1 > word2:
+                    output_temp.write(line2 + '\n')
+                    line2 = input_temp.readline().strip('\n')
+                    if line2 == '':
+                        break
+                    word2 = eval(line2)[0]
+                    
+                while word2 > word1:
+                    output_temp.write(line1 + '\n')
+                    line1 = cur_batch_file.readline().strip('\n')
+                    if line1 == '':
+                        break
+                    word1 = eval(line1)[0]
+                
+                if (word1 == word2):
+                    temp_dict = self.merge_posting(eval(line1)[1], eval(line2)[1])
+                    output_temp.write(str((word1, temp_dict)) + '\n')
+                    line1 = cur_batch_file.readline().strip('\n')
+                    line2 = input_temp.readline().strip('\n')
+            
+            cur_batch_file.close()
+            input_temp.close()
+            output_temp.close()
+            cur_temp = (cur_temp + 1) % 2
+            
+        self.remove_merge_temp_files(cur_temp)
+               
         
     def get_file_list(self):
         return Path(self.directory).rglob('*.json')
@@ -115,7 +179,7 @@ class Indexer:
         bolds = ''
         
         for title in soup.find_all('title'):
-            titles += title.text+ ','
+            titles += title.text + ','
         for heading in soup.find_all(['h1', 'h2', 'h3']):
             headings += heading.text + ','
         for bold in soup.find_all(['b', 'strong']):
@@ -173,7 +237,7 @@ class Indexer:
         
 
     def get_token_posting_locations(self):
-        index_file = open('./indexes/index_batch_1.txt', 'r')
+        index_file = open('./indexes/index.txt', 'r')
         with open('./indexes/token_posting_locations.json', 'w') as token_posting_location_file:
             token_posting_location_dict = dict()
             
@@ -188,12 +252,30 @@ class Indexer:
             json.dump(token_posting_location_dict, token_posting_location_file)
         
         index_file.close()
-        
+    
+    
+    def merge_posting(self, posting1, posting2):
+        d = {k : v for k, v in sorted({** posting1, ** posting2}.items())}
+        return d
+    
+    
+    def remove_merge_temp_files(self, cur_temp):
+        if cur_temp == 0:
+            os.remove('./indexes/temp1.txt')
+            os.rename('./indexes/temp0.txt', './indexes/index.txt')
+        else:
+            os.remove('./indexes/temp0.txt')
+            os.rename('./indexes/temp1.txt', './indexes/index.txt')
+
+
+    def clear_merge_temp_files(self):
+        with open('./indexes/temp0.txt', 'r+') as temp0, open('./indexes/temp1.txt', 'r+') as temp1:
+            temp0.truncate(0)
+            temp1.truncate(0)    
                 
         
-
 def generate_report():
-    with open('report_MS1.txt', 'w') as report_file:
+    with open('report_MS3.txt', 'w') as report_file:
         with open('./indexes/docid_url_map.json', 'r') as docid_json:
             docid_map = json.load(docid_json)
         report_file.write(f"The number of indexed documents: {len(docid_map)}\n\n")
@@ -215,9 +297,9 @@ def generate_report():
 if __name__ == '__main__':
     indexer = Indexer()
     indexer.build_index()
+    indexer.binary_merge_index_batches('./indexes')
     indexer.get_token_posting_locations()
-    #indexer.merge_index_batches('./index')
-    #generate_report()
+    generate_report()
 
 
 

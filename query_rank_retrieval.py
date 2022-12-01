@@ -4,11 +4,13 @@ import math
 from pathlib import Path
 import json
 import re
+import time
 
 class Query:
     def __init__(self, indexer):
         self.docid_document_dict = indexer.load_json('./indexes/docid_url_map.json')
-        self.index = open('./indexes/index_batch_1.txt')
+        # this wraps a function call of the index file object instead of loading the entire file into the memory
+        self.index = open('./indexes/index.txt') 
         self.token_posting_locations = indexer.load_json('./indexes/token_posting_locations.json')
         self.indexer = indexer
         self.query_tokens = []
@@ -66,7 +68,7 @@ class Query:
         
         
         docid_cosine_similarity_dict = dict(sorted(docid_cosine_similarity_dict.items(), key=lambda x: x[1], reverse=True))
-        count_of_ranked_docs = 5
+        count_of_ranked_docs = 10
         doc_ids = list(docid_cosine_similarity_dict.keys())
         if len(doc_ids) < count_of_ranked_docs:
             for i in range(len(doc_ids)):
@@ -88,7 +90,7 @@ class Query:
     def get_token_posting(self, token):
         pointer = self.token_posting_locations[token]
         self.index.seek(pointer)
-        line = self.index.readline()
+        line = self.index.readline() # this loads one line into the memory
         line_beautified = re.sub(r"[\'\(\)\{\}\:,]", "", line.strip())
         l = line_beautified.split()
         token = l[0]
@@ -103,11 +105,13 @@ class Query:
 if __name__ == '__main__':
     query = Query(Indexer())
     q = input('\nSearch Bar: ')
+    start = time.time()
     query.get_query_tokens(q)
     query.ranking_retrieval()
     print(query.result())
+    process_time = time.time() - start
+    print(f'{(process_time * 1000):2f} ms')
     
     """
     check this url if you cannot input your search string in VSCode: https://www.youtube.com/watch?v=mqp98TSVJUE
     """
-    
