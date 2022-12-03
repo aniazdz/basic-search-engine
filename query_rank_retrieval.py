@@ -7,7 +7,6 @@ import re
 import time
 
 class Query:
-    #Query Class Constructor
     def __init__(self, indexer):
         self.docid_document_dict = indexer.load_json('./indexes/docid_url_map.json')
         # this wraps a function call of the index file object instead of loading the entire file into the memory
@@ -17,12 +16,12 @@ class Query:
         self.query_tokens = []
         self.result_urls = list()
         
-    #function tokenizes txt file given a query    
+        
     def get_query_tokens(self, query):
         # query = input('\nSearch Bar: ')
         self.query_tokens = self.indexer.tokenize(query)
         
-    # function ranks the tokens based on frequency of token in txt file which is used for scoring relevence   
+        
     def ranking_retrieval(self):
         while not self.query_tokens:
             print("\nEmpty String is unacceptable!")
@@ -81,14 +80,13 @@ class Query:
                 self.result_urls.append(result_url)
                          
     
-    #function produced the resulting rank 
     def result(self):
         res = []
         for i in range(len(self.result_urls)):
             res.append( (i + 1, self.result_urls[i]) )
         return res
             
-     #function provides the associated document for the token       
+            
     def get_token_posting(self, token):
         pointer = self.token_posting_locations[token]
         self.index.seek(pointer)

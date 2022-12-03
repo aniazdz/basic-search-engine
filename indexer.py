@@ -256,6 +256,7 @@ class Indexer:
     
     def merge_posting(self, posting1, posting2):
         d = {k : v for k, v in sorted({** posting1, ** posting2}.items())}
+        #sort according to the document sequence number
         return d
     
     
@@ -299,7 +300,7 @@ if __name__ == '__main__':
     indexer.build_index()
     indexer.binary_merge_index_batches('./indexes')
     indexer.get_token_posting_locations()
-    generate_report()
+    #generate_report()
 
 
 
